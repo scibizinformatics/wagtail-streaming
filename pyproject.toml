@@ -1,0 +1,70 @@
+[project]
+name = "wagtailstreaming"
+description = "A Wagtail module for segmenting videos and serving stream manifests"
+authors = [
+    {name = "Felix Leo Flores", email = "floresfelixleo.fleurs96@gmail.com"}
+]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+keywords = [
+    "Wagtail", "Django", 
+    "HLS", "MPEG-DASH", "FFmpeg", 
+    "Video", "Streaming"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Wagtail",
+    "Framework :: Wagtail :: 6",
+    "Framework :: Wagtail :: 7",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12", 
+    "Programming Language :: Python :: 3.13", 
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Multimedia :: Video",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "celery>=5.3",
+    "Django>=4.2",
+    "djangorestframework>=3.15",
+    "djangorestframework-dataclasses>=1.1",
+    "django-celery-beat>=2.6",
+    "django-taggit>=5.0",
+    "psutil>=5.9",
+    "python-magic>=0.4; sys_platform != 'win32'",
+    "python-magic-bin>=0.4; sys_platform == 'win32'",
+    "Wagtail>=6.3",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/Jxst-Felix/wagtail-streaming"
+Issues = "https://github.com/Jxst-Felix/wagtail-streaming/issues"
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+    "build", "dist", 
+    "docs", "tests", 
+    ".github", "dev", 
+    "postgres-data",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic]
+version = { attr = "wagtailstreaming.__version__" }

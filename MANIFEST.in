@@ -1,0 +1,16 @@
+include LICENSE
+include README.md
+
+recursive-include src/wagtailstreaming/static *
+recursive-include src/wagtailstreaming/templates *
+recursive-include src/wagtailstreaming/migrations *
+recursive-include src/wagtailstreaming/locale *
+
+prune build
+prune dist
+prune docs
+prune tests
+prune dev
+prune .github
+prune postgres-data
+global-exclude __pycache__ *.py[cod] .DS_Store *.log Dockerfile docker-compose.yml entrypoint.sh supervisord.conf
