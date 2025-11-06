@@ -1,0 +1,90 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n wagtailadmin_tags %}
+
+{% block titletag %}
+  {% trans "Video Streams" %}
+{% endblock %}
+
+{% block content %}
+  {% trans "Video Streams" as stream_str %}
+  {% url "wagtailstreaming:index" as results_url %}
+
+  {% if user_has_perm %}
+    {% fragment as extra_actions %}
+      {% block add_actions %}
+        <a 
+          href="{% url 'wagtailstreaming:add' %}" 
+          class="button button--icon bicolor"
+        >
+          {% icon name="plus" wrapped=1 %}
+          {% trans "Add video" %}
+        </a>
+      {% endblock %}
+    {% endfragment %}
+
+    {% include "wagtailadmin/shared/header.html" with title=stream_str icon="media" search_url="wagtailstreaming:index" search_results_url=results_url search_target="#stream-results" extra_actions=extra_actions %}
+
+  {% else %}
+    {% include "wagtailadmin/shared/header.html" with title=stream_str icon="media" search_url="wagtailstreaming:index" search_results_url=results_url search_target="#stream-results" %}
+  {% endif %}
+
+  <div class="nice-padding">
+    {% if collections %}
+      {% url "wagtailstreaming:index" as index_url %}
+      <form 
+        role="search" 
+        class="search-bar" 
+        action="{{ index_url }}" 
+        method="GET" 
+        novalidate
+      >
+        <input 
+          type="hidden" 
+          name="q" 
+          id="id_q"  
+          value="{{ query_str }}"
+        >
+
+        <ul class="fields">
+          <li>
+            {% include "wagtailadmin/shared/collection_chooser.html" %}
+          </li>
+          {% if pop_tags %}
+            <li>
+              <fieldset class="tagfilter">
+                <legend>
+                  {% trans 'Popular Tags:' %}
+                </legend>
+                {% for tag in pop_tags %}
+                  <a 
+                    class="button button-small bicolor button--icon{% if tag.name != current_tag %} button-secondary{% endif %}" 
+                    href="{{ index_url }}{% querystring tag=tag.name %}"
+                  >
+                    {% icon name="tag" wrapped=1 %}
+                    {{ tag.name }}
+                  </a>
+                {% endfor %}
+
+                {% if current_tag %}
+                  <a 
+                    class="button button-small bicolor button-secondary button--icon" 
+                    href="{{ index_url }}{% querystring tag='' %}"
+                  >
+                    {% icon name="cross" wrapped=1 %}
+                    {% trans 'Clear' %}
+                  </a>
+                {% endif %}
+
+              </fieldset>
+            </li>
+          {% endif %}
+
+        </ul>
+      </form>
+    {% endif %}
+
+    <div id="stream-results" class="streams">
+      {% include "wagtailstreaming_templates/instances/results.html" %}
+    </div>
+  </div>
+{% endblock %}

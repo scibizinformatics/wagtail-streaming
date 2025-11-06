@@ -1,0 +1,16 @@
+{% load wagtailadmin_tags %}
+
+{% if obj_a == obj_b %}
+  <div class="compare">{% if obj_a %}{{ obj_a|safe }}{% endif %}</div>
+
+{% elif obj_a and obj_b %}
+  <div class="compare deleted">{{ obj_a|safe }}</div>
+  <div class="compare added">{{ obj_b|safe }}</div>
+
+{% elif obj_a %}
+  <div class="compare deleted">{{ obj_a|safe }}</div>
+
+{% elif obj_b %}
+  <div class="compare added">{{ obj_b|safe }}</div>
+
+{% endif %}

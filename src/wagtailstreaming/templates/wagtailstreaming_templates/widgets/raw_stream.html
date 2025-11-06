@@ -1,0 +1,13 @@
+{% if instance.file %}
+<video controls class="raw_video_player">
+  <source src="{{ instance.raw.url }}" type="{{ instance.raw.mime }}">
+  <p>Your browser does not support the video tag.</p>
+</video>
+
+{% elif instance.file_url %}
+<p>Video is not yet available.</p>
+
+{% else %}
+<p>No video available.</p>
+
+{% endif %}

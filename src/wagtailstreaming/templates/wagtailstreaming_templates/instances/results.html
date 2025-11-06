@@ -1,0 +1,46 @@
+{% load i18n wagtailadmin_tags %}
+
+{% if video_files %}
+  {% if is_searching %}
+    <h2 role="alert">
+      {% with video_files|length as counter %}
+        Found {{ counter }} match{{ counter|pluralize:"es" }}
+      {% endwith %}
+    </h2>
+
+    {% search_other %}
+  {% endif %}
+
+  {% include "wagtailstreaming_templates/instances/list.html" %}
+  {% include "wagtailadmin/shared/pagination_nav.html" with items=video_files is_searching=is_searching linkurl="wagtailstreaming:index" %}
+
+{% else %}
+  {% if is_searching %}
+    <h2 role="alert">
+      {% blocktrans %}
+        No video files matched "<em>{{ query_str }}</em>"
+      {% endblocktrans %}
+    </h2>
+
+    {% search_other %}
+
+  {% else %}
+    {% url 'wagtailstreaming:add' as wagtailstreaming_upload_url %}
+    {% if current_collection %}
+      <p>
+        {% blocktrans %}
+          You haven't uploaded any videos in this collection yet.
+          [<a href="{{ wagtailstreaming_upload_url }}">Upload one here</a>]
+        {% endblocktrans %}
+      </p>
+
+    {% else %}
+      <p>
+        {% blocktrans %}
+          You haven't uploaded any videos yet.
+          [<a href="{{ wagtailstreaming_upload_url }}">Upload one here</a>]
+        {% endblocktrans %}
+      </p>
+    {% endif %}
+  {% endif %}
+{% endif %}

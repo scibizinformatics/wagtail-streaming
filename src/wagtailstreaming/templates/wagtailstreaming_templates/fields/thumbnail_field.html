@@ -1,0 +1,16 @@
+{% load i18n wagtailadmin_tags %}
+{% rawformattedfield field=field %}
+  <div class="w-field__wrapper">
+    {% if instance.thumbnail %}
+      <a href="{{ instance.thumbnail.url }}">
+        {% icon name="image" classname="middle" %}
+        &nbsp; 
+        {{ instance.thumbnail.filename }}
+      </a>
+      <br />
+      <br />
+    {% endif %}
+
+    {{ field }}
+  </div>
+{% endrawformattedfield %}

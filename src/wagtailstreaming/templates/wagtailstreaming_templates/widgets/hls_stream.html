@@ -1,0 +1,32 @@
+{% if instance.hls_ready %}
+
+<video id="hls_video" controls class="hls_video_player"></video>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const video = document.getElementById('hls_video');
+    const videoSrc = "{{ instance.hls.url }}";
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+    } 
+
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoSrc;
+    }
+
+    else {
+      // might need to add settings to disallow serving raw vid
+      const fallback = document.createElement('p');
+      fallback.innerHTML = 'HLS not supported.';
+      video.replaceWith(fallback);
+    }
+  });
+</script>
+
+{% else %}
+  <p>No HLS stream available.</p>
+{% endif %}

@@ -1,0 +1,74 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n wagtailadmin_tags %}
+
+{% block titletag %}
+  {% trans "Add video" %}
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {{ form.media.js }}
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const fileWidget = document.getElementById("id_file");
+      const titleWidget = document.getElementById("id_title");
+
+      if (fileWidget && titleWidget) {
+        fileWidget.addEventListener("change", function() {
+          if (titleWidget.value.trim() === '') {
+            const parts = fileWidget.value.split("\\");
+            const filename = parts[parts.length - 1].replace(/\.[^.]+$/, "");
+            titleWidget.value = filename;
+          }
+        });
+      }
+    });
+  </script>
+{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  {{ form.media.css }}
+{% endblock %}
+
+{% block content %}
+  {% trans "Add video" as add_str %}
+  {% include "wagtailadmin/shared/header.html" with title=add_str icon="media" %}
+
+  <div class="nice-padding">
+    {% include "wagtailadmin/shared/non_field_errors.html" %}
+    <form 
+      action="{% block action %}{% url 'wagtailstreaming:add' %}{% endblock %}" 
+      method="POST" 
+      enctype="multipart/form-data" 
+      novalidate
+    >
+      {% csrf_token %}
+      <ul class="fields">
+        {% for field in form %}
+          {% if field.is_hidden %}
+            {{ field }}
+          {% else %}
+            <li>{% include "wagtailadmin/shared/field.html" with field=field %}</li>
+          {% endif %}
+        {% endfor %}
+
+        <li>
+          <button
+            type="submit"
+            class="button button-longrunning"
+            data-clicked-text="{% trans 'Uploading…' %}"
+            data-controller="w-progress"
+            data-action="w-progress#activate"
+            data-w-progress-active-value="{% trans 'Uploading…' %}"
+          >
+            {% icon name="spinner" %}<em>{% trans 'Upload' %}</em>
+          </button>
+        </li>
+
+      </ul>
+
+    </form>
+  </div>
+{% endblock %}

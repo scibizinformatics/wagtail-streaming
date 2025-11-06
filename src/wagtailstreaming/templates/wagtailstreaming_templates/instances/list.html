@@ -1,0 +1,122 @@
+{% load i18n l10n wagtailadmin_tags %}
+<table class="listing">
+  <col />
+  <col />
+  {% if collections %}
+    <col />
+  {% endif %}
+    <col width="16%" />
+  <thead>
+    <tr class="table-headers">
+      <th>
+        {% if not is_searching %}
+          {% if ordering == "-title" %}
+            <a 
+              href="{% url 'wagtailstreaming:index' %}?ordering=title" 
+              class="icon icon-arrow-up-after teal" 
+              data-ordering="title"
+            >
+
+          {% elif ordering == "title" %}
+            <a 
+              href="{% url 'wagtailstreaming:index' %}?ordering=-title" 
+              class="icon icon-arrow-down-after teal" 
+              data-ordering="-title"
+            >
+
+          {% else %}
+            <a 
+              href="{% url 'wagtailstreaming:index' %}?ordering=title" 
+              class="icon icon-arrow-down-after" 
+              data-ordering="title"
+            >
+          {% endif %}
+
+          {% trans "Title" %}
+          </a>
+
+        {% else %}
+          {% trans "Title" %}
+        {% endif %}
+      </th>
+
+      <th>{% trans "File" %}</th>
+      <th>{% trans "Segmentation" %}</th>
+      {% if collections %}
+        <th>{% trans "Collection" %}</th>
+      {% endif %}
+      <th>
+        {% if not is_searching %}
+          {% if ordering == "-created_at" %}
+            <a 
+              href="{% url 'wagtailstreaming:index' %}?ordering=created_at" 
+              class="icon icon-arrow-up-after teal" 
+              data-ordering="created_at"
+            >
+
+          {% else %}
+            <a 
+              href="{% url 'wagtailstreaming:index' %}?ordering=-created_at" 
+              class="icon icon-arrow-down-after" 
+              data-ordering="-created_at"
+            >
+          {% endif %}
+
+          {% trans "Uploaded" %}
+          </a>
+
+        {% else %}
+          {% trans "Uploaded" %}
+        {% endif %}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for video in video_files %}
+      <tr>
+        <td id="instance_{{ video.pk|unlocalize }}_title" class="title">
+          {% if choosing %}
+            <div class="title-wrapper">
+              <a 
+                href="{% url 'wagtailstreaming:stream_chosen' video.pk %}" 
+                class="stream-chosen"
+              >
+                {{ video.title }}
+              </a>
+            </div>
+
+          {% else %}
+            <div class="title-wrapper">
+              <a href="{% url 'wagtailstreaming:edit' video.id %}">
+                {{ video.title }}
+              </a>
+            </div>
+          {% endif %}
+        </td>
+
+        <td>
+          {% if choosing %}
+            {{ video.raw.file_root }}
+          {% else %}
+            <a 
+              href="{{ video.url }}" 
+              class="nolink"
+            >
+              {{ video.raw.file_root }}
+            </a>
+          {% endif %}
+        </td>
+
+        <td>{{ video.progress.total_percentage }}%</td>
+
+        {% if collections %}
+          <td>{{ video.collection.name }}</td>
+        {% endif %}
+
+        <td>{% human_readable_date video.created_at %}</td>
+
+      </tr>
+    {% endfor %}
+
+  </tbody>
+</table>

@@ -1,0 +1,103 @@
+{% load i18n wagtailadmin_tags %}
+
+{% include "wagtailadmin/shared/header.html" with 
+  title=title 
+  icon=icon 
+  merged=1 
+%}
+
+<div class="w-tabs" data-tabs data-tabs-animate data-tabs-disable-url>
+  {{ form.media.js }}
+  {{ form.media.css }}
+
+  <div class="w-tabs__wrapper w-overflow-hidden">
+    <div role="tablist" 
+      class="w-tabs__list w-w-full nice-padding"
+    >
+      {% trans "Search" as search_text %}
+      {% include 'wagtailadmin/shared/tabs/tab_nav_link.html' with tab_id='search' title=search_text %}
+
+      {% trans "Upload" as upload_text %}
+      {% if form.errors %}
+        {% include 'wagtailadmin/shared/tabs/tab_nav_link.html' with tab_id='upload' title=upload_text errors_count=form.errors|length %}
+
+      {% else %}
+        {% include 'wagtailadmin/shared/tabs/tab_nav_link.html' with tab_id='upload' title=upload_text %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="tab-content">
+    <section 
+      id="tab-search" 
+      class="w-tabs__panel" 
+      role="tabpanel" 
+      aria-labelledby="tab-label-search"
+    >
+      <form 
+        action="{% url 'wagtailstreaming:chooser' %}" 
+        method="GET" 
+        role="search" 
+        class="video-search search-bar" 
+        novalidate 
+        data-chooser-modal-search
+      >
+        <ul class="fields">
+          {% for field in searchform %}
+            <li>{% include "wagtailadmin/shared/field.html" with field=field only %}</li>
+          {% endfor %}
+
+          {% if collections %}
+            <li>{% include "wagtailadmin/shared/collection_chooser.html" %}</li>
+          {% endif %}
+        </ul>
+      </form>
+
+      <div id="stream-results" class="listing media">
+        {% include "wagtailstreaming_templates/instances/results.html" %}
+      </div>
+    </section>
+
+    <section 
+      id="tab-upload" 
+      class="w-tabs__panel" 
+      role="tabpanel" 
+      aria-labelledby="tab-label-upload" 
+      hidden
+    >
+      {% include "wagtailadmin/shared/non_field_errors.html" with form=form %}
+      <form 
+        class="video-upload" 
+        action="{% url 'wagtailstreaming:chooser_upload' %}" 
+        method="POST" 
+        enctype="multipart/form-data" 
+        novalidate
+      >
+        {% csrf_token %}
+        <ul class="fields">
+          {% for field in form %}
+            {% if field.is_hidden %}
+              {{ field }}
+
+            {% else %}
+              <li>{% include "wagtailadmin/shared/field.html" with field=field only %}</li>
+            {% endif %}
+          {% endfor %}
+
+          <li>
+            <button
+              type="submit"
+              class="button button-longrunning"
+              data-clicked-text="{% trans 'Uploading…' %}"
+              data-controller="w-progress"
+              data-action="w-progress#activate"
+              data-w-progress-active-value="{% trans 'Uploading…' %}"
+            >
+              {% icon name="spinner" %}<em>{% trans 'Upload' %}</em>
+            </button>
+          </li>
+        </ul>
+      </form>
+    </section>
+  </div>
+</div>

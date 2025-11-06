@@ -1,0 +1,48 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n %}
+
+{% block titletag %}
+  {% blocktrans with title=instance.title %}
+    Delete {{ title }}
+  {% endblocktrans %}
+{% endblock %}
+
+{% block content %}
+  {% trans "Delete video" as del_str %}
+  {% include "wagtailadmin/shared/header.html" with title=del_str subtitle=instance.title icon="media" %}
+
+  <div class="nice-padding">
+    <div class="usagecount">
+      <a href="{{ instance.usage_url }}">
+        {% blocktrans trimmed count usage_count=instance.get_usage.count %}
+          Used {{ usage_count }} time
+        {% plural %}
+          Used {{ usage_count }} times
+        {% endblocktrans %}
+      </a>
+    </div>
+
+    <p>{% trans "Are you sure you want to proceed in deleting the video?" %}</p>
+    <form 
+      action="{% url 'wagtailstreaming:delete' instance.pk %}" 
+      method="POST" 
+      novalidate
+    >
+      {% csrf_token %}
+      {% if next %}
+        <input type="hidden" value="{{ next }}" name="next">
+      {% endif %}
+
+      <button type="submit" class="button serious">
+        {% trans "Proceed deletion" %}
+      </button>
+
+      <a 
+        href="{% url 'wagtailstreaming:index' %}" 
+        class="button button-secondary"
+      >
+        {% trans "Cancel deletion" %}
+      </a>
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n %}
+
+{% block titletag %}
+  {% blocktrans trimmed with title=instance.title %}
+    Usage of {{ title }}
+  {% endblocktrans %}
+{% endblock %}
+
+{% block content %}
+  {% trans "Usage of" as usage_str %}
+  {% include "wagtailadmin/shared/header.html" with title=usage_str subtitle=instance.title %}
+
+  <div class="nice-padding">
+    <table class="listing">
+      <thead>
+        <tr>
+          <th class="title">{% trans "Title" %}</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Field" %}</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for label, edit_url, link_title, verbose_name, references in results %}
+          <tr>
+            <td class="title">
+              <div class="title-wrapper">
+                {% if edit_url %}
+                  <a 
+                    href="{{ edit_url }}" 
+                    title="{{ link_title }}"
+                  >
+                    {{ label }}
+                  </a>
+                {% else %}
+                  {{ label }}
+                {% endif %}
+              </div>
+            </td>
+
+            <td>
+              {{ verbose_name }}
+            </td>
+
+            <td>
+              <ul>
+                {% for reference in references %}
+                  <li>
+                    {% if edit_url %}
+                      <a href="{{ edit_url }}#content-path-{{ reference.content_path }}">
+                        {{ reference.describe_source_field }}
+                      </a>
+                    {% else %}
+                      {{ reference.describe_source_field }}
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% include "wagtailadmin/shared/pagination_nav.html" with items=object_page %}
+{% endblock %}

@@ -1,0 +1,13 @@
+<div class="stream_mirrors">
+  {% if mode != "raw" and "raw" in streams %}
+    <a href="{{ url }}?mode=raw">Raw</a>
+  {% endif %}
+
+  {% if mode != "hls" and "hls" in streams %}
+    <a href="{{ url }}?mode=hls">HLS</a>
+  {% endif %}
+
+  {% if mode != "dash" and "dash" in streams %}
+    <a href="{{ url }}?mode=dash">MPEG-DASH</a>
+  {% endif %}
+</div>

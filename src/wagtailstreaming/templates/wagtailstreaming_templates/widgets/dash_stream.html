@@ -1,0 +1,31 @@
+{% if instance.dash_ready %}
+
+<video id="dash_video" controls class="dash_video_player"></video>
+
+<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const video = document.getElementById('dash_video');
+    const dashSrc = "{{ instance.dash.url }}";
+
+    if (dashjs.MediaPlayer.isSupported()) {
+      const player = dashjs.MediaPlayer().create();
+      player.initialize(video, dashSrc, true);
+    }
+
+    else if (video.canPlayType('application/dash+xml')) {
+      video.src = dashSrc;
+    }
+
+    else {
+      // might need to add settings to disallow serving raw vid
+      const fallback = document.createElement('p');
+      fallback.innerHTML = 'MPEG-DASH not supported.';
+      video.replaceWith(fallback);
+    }
+  });
+</script>
+
+{% else %}
+<p>No DASH stream available.</p>
+{% endif %}

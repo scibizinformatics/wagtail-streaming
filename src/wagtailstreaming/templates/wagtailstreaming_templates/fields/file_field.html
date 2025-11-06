@@ -1,0 +1,12 @@
+{% load i18n wagtailadmin_tags %}
+{% rawformattedfield field=field %}
+  <a href="{{ instance.url }}">
+    {% icon name="media" classname="middle" %}
+    &nbsp; 
+    {{ instance.raw.file_root }}
+  </a>
+  <br />
+  <br />
+  {% trans "Change file:" %}
+  {{ field }}
+{% endrawformattedfield %}
