@@ -1,0 +1,31 @@
+.compare {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-family: var(--w-font-sans, "Inter", sans-serif);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.compare:not(.added):not(.deleted) {
+  background: var(--w-color-grey-50, #f7f7f7);
+  color: var(--w-color-text, #333);
+  border: 1px solid var(--w-color-grey-100, #ddd);
+}
+
+.compare.added {
+  background: var(--w-color-positive-50, #e9f8ec);
+  border: 1px solid var(--w-color-positive-100, #b9e2c0);
+  color: var(--w-color-positive-500, #147a2e);
+}
+
+.compare.deleted {
+  background: var(--w-color-negative-50, #fce8e8);
+  border: 1px solid var(--w-color-negative-100, #f5bcbc);
+  color: var(--w-color-negative-500, #b11a1a);
+  text-decoration: line-through;
+}
+
+.compare.added, .compare.deleted {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}

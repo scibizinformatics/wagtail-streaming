@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.stream-container {
+  max-width: 960px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  overflow: hidden;
+  border-radius: 6px;
+  position: relative;
+}
+
+video, iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: #000;
+}
+
+.stream_mirrors {
+  margin-top: 1em;
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+}
+
+.stream_mirrors a {
+  color: #0af;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.stream_mirrors a:hover {
+  color: #4cf;
+}
