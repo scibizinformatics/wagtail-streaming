@@ -162,6 +162,19 @@ class VideoStream(
         FieldPanel('tags'), 
     ]
 
+    search_fields = CollectionMember.search_fields + [
+        index.SearchField('title', boost = 5),
+        index.AutocompleteField('title', boost = 5),
+        index.FilterField('title'),
+        index.FilterField('uploaded_by'),
+        index.RelatedFields(
+            'tags', [
+                index.SearchField('name', boost = 5),
+                index.AutocompleteField('name', boost = 5),
+            ]
+        ),
+    ]
+
     form_fields = [
         'title', 
         'file', 
@@ -314,6 +327,11 @@ class VideoStream(
     @property
     def usage(self):
         return reverse('wagtailstreaming:stream_usage', args = (self.id,))
+    
+    @property
+    def usage_count(self) -> int:
+        refs = ReferenceIndex.get_references_to(self)
+        return refs.count()
 
     def can_be_edited_by(self, user) -> bool:
         from .permissions import perm_policy
@@ -364,22 +382,6 @@ class VideoStream(
     class Meta:
         verbose_name = _('video stream')
         ordering = ['title']
-
-
-class VideoStreamIndex(index.Indexed):
-    title = index.SearchField('title', boost = 5)
-    title_autocomplete = index.AutocompleteField('title', boost = 5)
-    title_filter = index.FilterField('title')
-    uploaded_by = index.FilterField('uploaded_by')
-    tags = index.RelatedField(
-        'tags', [
-            index.SearchField('name', boost = 5),
-            index.AutocompleteField('name', boost = 5),
-        ]
-    )
-
-    def prepare_title_autocomplete(self, obj):
-        return obj.title.lower()
 
 
 def get_stream_model() -> typing.Type[VideoStream]:
