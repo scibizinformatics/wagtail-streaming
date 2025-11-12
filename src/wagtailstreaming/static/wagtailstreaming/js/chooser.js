@@ -19,8 +19,10 @@ function createStreamChooser(id) {
           input.value = streamData.id;
           streamTitle.textContent = streamData.title;
           chooserElement.classList.remove('blank');
-          editAction.href = streamData.edit_url;
-          editAction.classList.remove('w-hidden');
+          if (editAction) {
+            editAction.href = streamData.edit_url;
+            editAction.classList.remove('w-hidden');
+          }
           state = streamData;
         }
       }
@@ -41,8 +43,10 @@ function createStreamChooser(id) {
       if (!streamData) return;
       input.value = streamData.id;
       streamTitle.textContent = streamData.title;
-      editAction.href = streamData.edit_url;
-      editAction.classList.remove('w-hidden');
+      if (editAction) {
+        editAction.href = streamData.edit_url;
+        editAction.classList.remove('w-hidden');
+      }
       chooserElement.classList.remove('blank');
       state = streamData;
     },

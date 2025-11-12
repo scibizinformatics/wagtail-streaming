@@ -5,13 +5,17 @@
   }
 
   StreamChooser.prototype.render = function(placeholder, name, id, initialState) {
-    const html = this.html
-      .replace(/__NAME__/g, name)
-      .replace(/__ID__/g, id);
-
+    const html = this.html.replace(/__NAME__/g, name).replace(/__ID__/g, id);
     placeholder.outerHTML = html;
-    const chooser = createStreamChooser(id);
+    
+    let chooser = createStreamChooser(id);
     chooser.setState(initialState);
+
+    requestAnimationFrame(() => {
+      chooser = createStreamChooser(id);
+      chooser.setState(initialState);
+    });
+
     return chooser;
   };
 

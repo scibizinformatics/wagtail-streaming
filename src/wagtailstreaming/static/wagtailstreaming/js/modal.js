@@ -12,7 +12,7 @@ STREAM_CHOOSER_MODAL_ONLOAD_HANDLERS = {
     let request;
 
     function ajaxifyLinks (context) {
-      $('a.stream-chosen', context).on('click', (e) => {
+      $('a.stream-choice', context).on('click', (e) => {
         e.preventDefault();
         modal.loadUrl(e.currentTarget.href);
       });
