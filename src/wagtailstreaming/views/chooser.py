@@ -27,7 +27,7 @@ def chooser(request):
         form = utils.init_form(request, instance, prefix = 'stream-chooser-upload')
 
     if {'q', 'p', 'tag', 'collection_id'} & set(request.GET.keys()):
-        video_files, collection = utils.filter_collection(request, video_files)
+        video_files, c = utils.filter_collection(request, video_files)
         searchform = SearchForm(request.GET)
 
         q = None
@@ -38,7 +38,7 @@ def chooser(request):
 
         else:
             video_files = video_files.order_by(ordering)
-            video_files, collection = utils.filter_tag(request, video_files)
+            video_files, c = utils.filter_tag(request, video_files)
 
         paginator, video_files = utils.paginate(request, video_files)
         return render(
@@ -85,8 +85,8 @@ def chooser(request):
     )
 
 
-def stream_selected(request, id):
-    stream = get_object_or_404(VideoStream, id = id)
+def stream_selected(request, pk):
+    stream = get_object_or_404(VideoStream, id = pk)
     return render_modal_workflow(
         request, None, None, None,
         json_data = {

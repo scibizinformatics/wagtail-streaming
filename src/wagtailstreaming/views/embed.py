@@ -13,12 +13,13 @@ LOGGER = logging.getLogger(__name__)
 stream_model = get_stream_model()
 
 
-def render_stream(request, instance: VideoStream) -> Tuple[str, str]:
+def render_stream(request, instance: VideoStream, use_embed_url: bool = False) -> Tuple[str, str]:
     if not instance:
         return '', ''
     
+    params = getattr(request, 'query_params', getattr(request, 'GET', {}))
+    mode = params.get('mode', 'raw').lower()
     url = ''
-    mode = 'raw'
 
     try:
         url = reverse(
@@ -29,10 +30,8 @@ def render_stream(request, instance: VideoStream) -> Tuple[str, str]:
     except NoReverseMatch as e:
         LOGGER.error(f'Embed url is not included! Error: {e}')
 
-    if request:
-        params = getattr(request, 'query_params', getattr(request, 'GET', {}))
+    if request and not use_embed_url:
         url = request.build_absolute_uri(request.path)
-        mode = params.get('mode', 'raw').lower()
 
     mirrors_html = ''
     if url:
