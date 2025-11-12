@@ -1,12 +1,8 @@
 {% load i18n wagtailadmin_tags %}
 
-{% include "wagtailadmin/shared/header.html" with 
-  title=title 
-  icon=icon 
-  merged=1 
-%}
+{% include "wagtailadmin/shared/header.html" with title=title icon=icon merged=1 %}
 
-<div class="w-tabs" data-tabs data-tabs-animate data-tabs-disable-url>
+<div class="w-tabs" data-tabs data-tabs-animate data-tabs-disable-url data-wm-tabs>
   {{ form.media.js }}
   {{ form.media.css }}
 

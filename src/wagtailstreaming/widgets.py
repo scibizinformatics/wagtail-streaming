@@ -16,34 +16,12 @@ class AdminVideoStreamChooser(BaseChooser):
     choose_another_text = _('choose another video')
     chooser_modal_url_name = 'wagtailstreaming:chooser'
     link_to_chosen_text = _('edit this video')
-    icon = 'media'
     classname = 'video-stream-chooser'
+    icon = 'media'
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.model = get_stream_model()
-
-    def get_value_data(self, value = None):
-        if not value:
-            return None
-
-        if hasattr(value, "pk"):
-            return {
-                "id": value.pk,
-                "title": value.title,
-                "edit_url": f"/admin/videos/{value.pk}/edit/",
-            }
-
-        from .models import get_stream_model
-        stream_model = get_stream_model()
-        instance = stream_model.objects.filter(pk = value).first()
-        if instance:
-            return {
-                'id': instance.pk, 
-                'title': instance.title, 
-                'edit_url': reverse('wagtailstreaming:edit', args = (value, ))
-            }
-        return None
     
     def get_chooser_modal_url(self):
         return reverse('wagtailstreaming:chooser')
@@ -57,6 +35,7 @@ class AdminVideoStreamChooser(BaseChooser):
             js = [
                 "wagtailstreaming/js/modal.js",
                 "wagtailstreaming/js/chooser.js",
+                "wagtailstreaming/js/tabs.js",
             ]
         )
 
