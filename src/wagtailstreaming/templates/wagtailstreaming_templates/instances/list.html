@@ -42,6 +42,7 @@
 
       <th>{% trans "File" %}</th>
       <th>{% trans "Segmentation" %}</th>
+      <th>{% trans "Usage" %}</th>
       {% if collections %}
         <th>{% trans "Collection" %}</th>
       {% endif %}
@@ -79,7 +80,7 @@
             <div class="title-wrapper">
               <a 
                 href="{% url 'wagtailstreaming:stream_chosen' video.pk %}" 
-                class="stream-chosen"
+                class="stream-choice"
               >
                 {{ video.title }}
               </a>
@@ -108,6 +109,8 @@
         </td>
 
         <td>{{ video.progress.total_percentage }}%</td>
+
+        <td>{{ video.usage_count }}</td>
 
         {% if collections %}
           <td>{{ video.collection.name }}</td>
