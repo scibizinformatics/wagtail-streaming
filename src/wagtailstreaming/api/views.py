@@ -34,7 +34,7 @@ class VideoStreamAPIViewSet(BaseAPIViewSet):
     detail_only_fields = BaseAPIViewSet.detail_only_fields + get_list_fields_or_default(stream_model, 'detail_only_fields', VideoStream.detail_only_fields)
 
     @action(detail = True, methods = ['get'])
-    def stream(self, request, pk = None):
+    def streams(self, request, pk = None):
         instance = self.get_object()
         serializer = StreamHTMLSerializer(
             instance, context = {'request': request}
@@ -51,7 +51,7 @@ class VideoStreamAPIViewSet(BaseAPIViewSet):
     def get_urlpatterns(cls):
         urlpatterns = super().get_urlpatterns()
         urlpatterns += [
-            path('<int:pk>/stream/', cls.as_view({'get': 'stream'}), name = 'stream'),
+            path('<int:pk>/streams/', cls.as_view({'get': 'streams'}), name = 'streams'),
             path('<int:pk>/attributes/', cls.as_view({'get': 'attributes'}), name = 'attributes'),
         ]
 

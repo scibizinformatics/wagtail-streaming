@@ -78,7 +78,7 @@ class VideoStreamSerializer(BaseSerializer):
     modes = StreamModesField()
 
 
-class StreamHTMLSerializer(BaseSerializer):
+class StreamHTMLSerializer(serializers.ModelSerializer):
     embed_html = serializers.SerializerMethodField()
     mirrors_html = serializers.SerializerMethodField()
 
@@ -89,7 +89,7 @@ class StreamHTMLSerializer(BaseSerializer):
     def _get_rendered_stream(self, obj):
         if not hasattr(obj, '_rendered_stream'):
             request = self.context.get('request')
-            obj._rendered_stream = render_stream(request, obj)
+            obj._rendered_stream = render_stream(request, obj, True)
         return obj._rendered_stream
 
     def get_embed_html(self, obj):
@@ -119,4 +119,7 @@ class VideoAttributeSerializer(DataclassSerializer):
 
     class Meta:
         dataclass = VideoAttribute
-        read_only_fields = ['streams', 'format']
+        read_only_fields = [
+            f.name for f in VideoAttribute.__dataclass_fields__.values()
+            if f.init is False and f.name not in ('streams', 'format')
+        ]
