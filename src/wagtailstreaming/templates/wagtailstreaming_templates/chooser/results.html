@@ -28,11 +28,17 @@
 
   {% else %}
     {% url 'wagtailstreaming:add' as upload_url %}
+
     <p>
-      {% blocktrans %}
-        No uploads found{% if current_collection %} in this collection{% endif %}. 
-        <a href="{{ upload_url }}">Upload one now</a>?
-      {% endblocktrans %}
+      {% if current_collection %}
+        {% blocktrans %}
+          No uploads found in this collection. <a href="{{ upload_url }}">Upload one now</a>?
+        {% endblocktrans %}
+      {% else %}
+        {% blocktrans %}
+          No uploads found. <a href="{{ upload_url }}">Upload one now</a>?
+        {% endblocktrans %}
+      {% endif %}
     </p>
 
   {% endif %}
