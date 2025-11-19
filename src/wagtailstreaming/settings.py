@@ -16,6 +16,7 @@ DEFAULTS = {
     'DOWNLOAD_ROOT': os.path.join(user_settings.BASE_DIR, 'downloads'), 
     'DASH_URL': '/dash/', 
     'HLS_URL': '/hls/', 
+    'DEFAULT_STREAM': 'hls', 
 
     # meta and segmentation
     'RESOLUTIONS': [

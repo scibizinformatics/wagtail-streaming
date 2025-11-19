@@ -8,6 +8,7 @@ from typing import Tuple
 import logging
 
 from ..models import VideoStream, get_stream_model
+from ..settings import stream_settings
 
 LOGGER = logging.getLogger(__name__)
 stream_model = get_stream_model()
@@ -18,7 +19,7 @@ def render_stream(request, instance: VideoStream, use_embed_url: bool = False) -
         return '', ''
     
     params = getattr(request, 'query_params', getattr(request, 'GET', {}))
-    mode = params.get('mode', 'raw').lower()
+    mode = params.get('mode', getattr(stream_settings, 'DEFAULT_STREAM', 'raw')).lower()
     url = ''
 
     try:
