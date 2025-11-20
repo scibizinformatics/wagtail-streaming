@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ instance.title|default:"Video Stream" }}</title>
     <link rel="stylesheet" href="{% static 'wagtailstreaming/css/embed.css' %}">
+    {{ meta|default:''|safe }}
   </head>
 
   <body>
