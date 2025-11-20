@@ -212,6 +212,14 @@ class VideoStream(
 
     def __str__(self) -> str:
         return self.title
+    
+    @property
+    def tags_as_inline(self) -> str:
+        def normalize(tag):
+            import re
+            tag = tag.lower().replace(' ', '_')
+            return re.sub(r'[^\w_]', '', tag)
+        return ' '.join(f'#{normalize(tag)}' for tag in self.tags.all())
 
     @property
     def hashed_id(self) -> str:
