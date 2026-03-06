@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 
+from pathlib import Path
 import subprocess
 import logging
 import typing
@@ -115,6 +116,62 @@ def create_thumbnail(
         LOGGER.error(f'Failed to generate thumbnail for video {source_path}: {e}')
         return False
     
+
+def extract_audio(source_path: str, output_path: str) -> bool:
+    """Extracts the audio part of a video"""
+    if not ffmpeg_installed():
+        return False
+    
+    try:
+        subprocess.run(
+            [
+                'ffmpeg', '-i', source_path, 
+                '-vn', '-ac', '1', '-ar',
+                '16000', output_path
+            ], check = True
+        )
+
+        if os.path.exists(output_path):
+            isfile = os.path.isfile(output_path)
+            if not isfile:
+                LOGGER.error(f'Failed to extract audio from {source_path}: output path {output_path} is not a file!')
+            return isfile
+        
+        LOGGER.error(f'Failed to extract thumbnail for video {source_path}, output_path {output_path} does not exist!')
+        return False
+    
+    except Exception as e:
+        LOGGER.error(f'Failed to extract audio from video {source_path}: {e}')
+        return False
+
+
+def nanogpt_transcribe(source_path: str, language: str = None) -> str:
+    try:
+        from openai import OpenAI
+    except Exception:
+        return ''
+
+    path = Path(source_path)
+    if not path.exists():
+        raise FileNotFoundError(f'Source audio file with path {source_path} is not accessible!')
+    
+    client = OpenAI(
+        api_key = stream_settings.NANOGPT_API_KEY, 
+        base_url = stream_settings.NANOGPT_BASE_URL
+    )
+
+    with open(path, 'rb') as file:
+        kwargs = dict(
+            model = 'whisper-1', 
+            file = file, 
+            response_format = 'vtt', 
+        )
+        if language:
+            kwargs['language'] = language
+
+        transcript = client.audio.transcriptions.create(**kwargs)
+    return transcript
+
 
 def check_attributes(source_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
     """Checks the attributes of a video."""
