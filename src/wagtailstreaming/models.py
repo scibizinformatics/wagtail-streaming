@@ -29,6 +29,7 @@ from .conversion_utils import (
 )
 from .dataclasses import (
     VideoAttribute, 
+    TranscriptInfo, 
     Duration, 
     Progress, 
     DASH, 
@@ -114,6 +115,12 @@ class VideoStream(
         help_text = _('marked if the raw video has been converted to MPEG-DASH format')
     )
 
+    transcript_ready = models.BooleanField(
+        default = False, 
+        verbose_name = _('has synced transcripts'), 
+        help_text = _('marked if the video has synced its transcripts to its .vtt file')
+    )
+
     uploaded_by = models.ForeignKey(
         user_settings.AUTH_USER_MODEL, 
         on_delete = models.SET_NULL, 
@@ -150,7 +157,7 @@ class VideoStream(
         null = True, blank = True,
         verbose_name = _('remarks'), 
         help_text = _('message logs or audit logs related to the video')
-    )
+    ) # move to another model maybe 
 
     objects = VideoStreamQuerySet.as_manager()
 
@@ -226,7 +233,7 @@ class VideoStream(
         return hash_this(self.id) if self.id else ''
 
     @property
-    def download_root(self) -> str:
+    def download_root(self) -> str: # fix this
         if any((
             self.file, 
             not self.file_url, 
@@ -253,6 +260,7 @@ class VideoStream(
 
         return RAW(
             _file = self.file, 
+            video_hash = self.hashed_id, 
             path = self.file.path, 
             url = self.file.url
         )
@@ -280,6 +288,18 @@ class VideoStream(
 
         path = os.path.join(stream_settings.DASH_ROOT, self.hashed_id)
         return DASH(root = create_dir(path))
+    
+    @property
+    def transcription(self) -> TranscriptInfo:
+        if not all ((
+            self.raw.has_audio_file,
+            self.raw.file_root, 
+            self.id
+        )):
+            return TranscriptInfo()
+        
+        path = os.path.join(stream_settings.TRANSCRIPT_ROOT, self.hashed_id)
+        return TranscriptInfo(root = create_dir(path))
 
     @property
     def duration(self) -> Duration:
@@ -315,7 +335,7 @@ class VideoStream(
             modes.append('hls')
 
         if self.dash_ready:
-            modes.appand('dash')
+            modes.append('dash')
         return modes
 
     @property
@@ -406,3 +426,23 @@ def get_stream_model() -> typing.Type[VideoStream]:
         except ValueError as e:
             raise ImproperlyConfigured(f'WAGTAILSTREAMING VIDEO_STREAM_MODEL setting must be written as "your_app.you_model_name": {e}')
     return VideoStream
+
+
+class Transcript(models.Model):
+    video = models.ForeignKey(get_stream_model(), on_delete = models.CASCADE, related_name = 'transcripts')
+    language = models.CharField(max_length = 16, help_text = _('Language assigned to this transcription'))
+    start = models.DurationField(help_text = _('The start range of the text when it is heard in the video'))
+    end = models.DurationField(help_text = _('The end range of the text when it is heard in the video'))
+    text = models.TextField(help_text = _('The text for this transcription'))
+    
+    def __str__(self):
+        return f'[{self.start} --> {self.end}] {self.text}'
+
+    def clean(self):
+        super().clean()
+        if self.start > self.end:
+            raise ValidationError('Transcript range must not be reversed')
+    
+    class Meta:
+        verbose_name = _('transcript')
+        ordering = ['video', 'language', 'start']
