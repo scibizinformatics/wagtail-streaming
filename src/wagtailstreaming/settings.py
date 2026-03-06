@@ -9,13 +9,24 @@ DEFAULTS = {
     'ALLOW_DASH': True, 
     'ALLOW_HLS': True, 
     'DISABLE_AUTO_CONVERSION': False, 
+    'AUTO_CREATE_TRANSCRIPTS': True, 
+
+    # keys and APIs
+    'NANOGPT_API_KEY': '', 
+    'NANOGPT_BASE_URL': '', 
 
     # dirs and serving
+    'TRANSCRIPT_ROOT': os.path.join(user_settings.BASE_DIR, 'transcripts'), 
     'DASH_ROOT': os.path.join(user_settings.BASE_DIR, 'dash'), 
     'HLS_ROOT': os.path.join(user_settings.BASE_DIR, 'hls'), 
+
     'DOWNLOAD_ROOT': os.path.join(user_settings.BASE_DIR, 'downloads'), 
+    'AUDIO_ROOT': os.path.join(user_settings.BASE_DIR, 'audios'), 
+
+    'TRANSCRIPT_URL': '/transcript/', 
     'DASH_URL': '/dash/', 
     'HLS_URL': '/hls/', 
+
     'DEFAULT_STREAM': 'hls', 
 
     # meta and segmentation
@@ -36,6 +47,7 @@ DEFAULTS = {
     # objects and functions
     'COLLECTION_PERMISSION_POLICY': '', 
     'VIDEO_STREAM_MODEL': '', 
+    'VIDEO_TRANSCRIBER': '', 
     'FILE_CLEANUP': '', 
     'BASE_FORM': '', 
 }
