@@ -30,6 +30,65 @@ LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
+class TranscriptInfo:
+    root: str = field(default = '') # transcript/<video_hash>/
+    _file_map: Dict[str, str] = field(init = False, default_factory = dict)
+    
+    def __post_init__(self):
+        if not self.root:
+            return
+
+        if not (
+            os.path.exists(self.root) and 
+            os.path.isdir(self.root)
+        ):
+            self.root = ''
+            return
+        
+        for f in os.listdir(self.root):
+            if not os.path.isfile(f):
+                continue
+
+            if not f.lower().endswith('.vtt'):
+                continue
+
+            lang = os.path.splitext(f)[0].lower()
+            self._file_map[lang] = f
+        
+        if len(self._file_map) == 1:
+            self._file_map['default'] = next(iter(self._file_map.values()))
+
+    @property
+    def files(self) -> List[str]:
+        if not self.root:
+            return []
+
+        return list(self._file_map.values())
+    
+    def _get_file(self, language: str = 'default') -> str:
+        if not self._file_map:
+            return ''
+
+        language = (language or 'default').lower()
+        return self._file_map.get(language, '')
+    
+    def get_path(self, language: str = 'default') -> str:
+        file = self._get_file(language)
+        if not file:
+            return ''
+
+        return os.path.join(self.root, file)
+
+    def get_url(self, language: str = 'default') -> str:
+        path = self.get_path(language)
+        if not path:
+            return ''
+
+        relative = os.path.relpath(path, stream_settings.TRANSCRIPT_ROOT)
+        return f"{stream_settings.TRANSCRIPT_URL.rstrip('/')}/{relative.replace(os.sep, '/')}"
+
+
+@dataclass
 class Stream:
     # exposed
     root: str = field(default = '')
@@ -102,6 +161,7 @@ class RAW(Stream):
     root: str = field(default = '', init = False)
     file_root: str = field(default = '', init = False)
     extension: str = field(default = '', init = False)
+    video_hash: str = field(default = '')
     path: str = field(default = '')
     url: str = field(default = '')
 
@@ -137,6 +197,19 @@ class RAW(Stream):
             return ''
         return mimetypes.guess_type(self.name)[0] or 'application/octet-stream'
     
+    @property
+    def audio_file(self) -> str:
+        if not self._file:
+            return ''
+        return os.path.join(stream_settings.AUDIO_ROOT, f'{self.video_hash}.wav')
+    
+    @property
+    def has_audio_file(self) -> bool:
+        file = self.audio_file
+        if not file:
+            return False
+        return os.path.exists(file) and os.path.isfile(file)
+
 
 @dataclass
 class StreamInfo:
