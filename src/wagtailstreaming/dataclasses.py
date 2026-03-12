@@ -4,6 +4,7 @@ from pathlib import Path
 import mimetypes
 import logging
 import math
+import re
 import os
 
 from dataclasses import (
@@ -27,7 +28,7 @@ from .utils import (
 )
 
 LOGGER = logging.getLogger(__name__)
-
+ATTR_RE = re.compile(r'([A-Z0-9-]+)=("[^"]*"|[^,]*)')
 
 @dataclass
 class TranscriptInfo:
@@ -432,3 +433,123 @@ class Progress:
     @property
     def total_percentage(self) -> float:
         return round((self.hls_percentage + self.dash_percentage) / 2, 2)
+
+
+@dataclass
+class Resolution:
+    w: int = field(default = 0)
+    h: int = field(default = 0)
+    res: str = field(default = '')
+
+    def __post_init__(self):
+        has_dimensions = self.w and self.h
+        if has_dimensions and not self.res:
+            self.res = f'{self.w}x{self.h}'
+
+        if not has_dimensions and self.res:
+            try:
+                x, y = self.res.split('x')
+                self.w = max(0, int(x))
+                self.h = max(0, int(y))
+
+            except Exception as e:
+                LOGGER.error(f'Failed to parse resolution {self.res}: {e}')
+
+@dataclass
+class StreamVariant:
+    bandwidth: int = field(default = 0)
+    resolution: Resolution = field(default_factory = Resolution)
+    codecs: str = field(default = '')
+    frame_rate: float = field(default = 0.0)
+    audio: str = field(default = '')
+    subtitles: str = field(default = 'subs')
+    path: str = field(default = '')
+
+    @property
+    def hls_rep(self) -> str:
+        return ','.join([
+            f"{k.upper().replace('_', '-')}={self.data_as_str(k)}"
+            for k, _ in self.__dataclass_fields__.items() 
+            if k != 'path'
+        ])
+    
+    def data_as_str(self, key: str) -> str:
+        if not hasattr(self, key):
+            return '""'
+        
+        v = getattr(self, key)
+        if isinstance(v, Resolution):
+            return v.res
+        
+        if isinstance(v, str):
+            return f'"{v}"'
+        return f'{v}'
+
+    def init_attrs(self, attrs: str):
+        for key, value in ATTR_RE.findall(attrs):
+            key = key.lower().replace('-', '_')
+            value = value.strip('"')
+
+            if not hasattr(self, key):
+                continue
+
+            data_field = getattr(self, key)
+            try:
+                if isinstance(data_field, Resolution):
+                    value = Resolution(res = value)
+
+                else:
+                    value = type(data_field)(value)
+                setattr(self, key, value)
+            except ValueError as e:
+                LOGGER.warning(f'Could not parse attribute {key}={value}, error: {e}')
+                continue
+        return self
+
+
+@dataclass
+class StreamSubtitle:
+    name: str = field(default = '')
+    language: str = field(default = '')
+    default: bool = field(default = False)
+    autoselect: bool = field(default = False)
+    uri: str = field(default = '') # file will always be vtt
+    # group_id will always be "subs"
+
+    @property
+    def hls_rep(self) -> str:
+        return ','.join([
+            f"{k.upper().replace('_', '-')}={self.data_as_str(k)}"
+            for k, _ in self.__dataclass_fields__.items()
+        ])
+    
+    def data_as_str(self, key: str) -> str:
+        if not hasattr(self, key):
+            return '""'
+
+        v = getattr(self, key)
+        if isinstance(v, str):
+            return f'"{v}"'
+
+        if isinstance(v, bool):
+            return 'YES' if v else 'NO'
+        return f'{v}'
+
+    def init_attrs(self, attrs: str):
+        for key, value in ATTR_RE.findall(attrs):
+            key = key.lower()
+            value = value.strip('"')
+            
+            if not hasattr(self, key):
+                continue
+
+            data_field = getattr(self, key)
+            try:
+                if isinstance(data_field, bool):
+                    value = str(value).lower() in ['yes', 'true']
+                setattr(self, key, value)
+            
+            except ValueError as e:
+                LOGGER.warning(f'Could not parse attribute {key}={value}, error: {e}')
+                continue
+        return self
