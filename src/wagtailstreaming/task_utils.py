@@ -8,7 +8,7 @@ import logging
 import typing
 import json
 
-from .models import VideoStream, get_stream_model
+from .models import VideoStream, get_stream_model, Transcript, TranscriptCue
 from .settings import stream_settings
 
 LOGGER = logging.getLogger(__name__)
@@ -104,6 +104,24 @@ def sched_download(stream_instance: VideoStream) -> bool:
     return True
 
 
+def sched_audio(stream_instance: VideoStream) -> bool:
+    """Schedules an audio extraction"""
+    if not celery_beat_installed():
+        LOGGER.warning('Skipping sched_download(): django_celery_beat is not installed')
+        return False
+    _create_sched('wagtailstreaming_extract_audio', stream_instance)
+    return True
+
+
+def sched_transcribe(stream_instance: VideoStream) -> bool:
+    """Schedules a transcribe task"""
+    if not celery_beat_installed():
+        LOGGER.warning('Skipping sched_transcribe(): django_celery_beat is not installed')
+        return False
+    _create_sched('wagtailstreaming_transcribe_video', stream_instance)
+    return True
+
+
 class QueueManager(ABC):
     @property
     def stream_instances(self) -> QuerySet[VideoStream]:
@@ -122,6 +140,9 @@ class QueueManager(ABC):
     
     def next(self, instance: VideoStream) -> typing.Optional[VideoStream]:
         """Provides the next instance"""
+        if not instance:
+            return None
+
         next_instance = self.stream_instances.filter(
             Q(created_at__gt = instance.created_at) |
             Q(created_at = instance.created_at, id__gt = instance.id)
@@ -166,8 +187,58 @@ class UploadQueueManager(QueueManager):
         return self.stream_instances.filter(process_id__isnull = False).first()
 
 
+class AudioExtractionQueueManager(QueueManager):
+    def get_stream_instances(self):
+        if not stream_settings.AUTO_CREATE_TRANSCRIPTS:
+            return VideoStream.objects.none()
+        return super().get_stream_instances().filter(audio_ready = False)
+    
+    @property
+    def ongoing(self) -> typing.Optional[VideoStream]:
+        if not stream_settings.AUTO_CREATE_TRANSCRIPTS:
+            return None
+        return self.stream_instances.filter(remarks__icontains = '[AUDIO EXTRACTION ONGOING]').first()
+
+
+class TranscriberManager(QueueManager):
+    def get_stream_instances(self):
+        if not stream_settings.AUTO_CREATE_TRANSCRIPTS:
+            return VideoStream.objects.none()
+
+        video_default_transcripts = self.get_video_defaults()
+        transcripts_to_process = self.get_unsynced_transcripts()
+
+        return super().get_stream_instances().filter(
+            ~Q(id__in = video_default_transcripts) | Q(id__in = transcripts_to_process)
+        )
+    
+    def get_video_defaults(self) -> typing.List[int]:
+        """Provides the lits of video ids that have default transcript yet"""
+        return Transcript.objects.filter(default = True).values_list('video__id', flat = True)
+    
+    def get_unsynced_transcripts(self) -> typing.List[int]:
+        """Provides the list of video ids that whose transcript cues are unsynced"""
+        return TranscriptCue.objects.filter(synced = False).values_list('transcript__video__id', flat = True)
+
+    @property
+    def ongoing(self) -> typing.Optional[VideoStream]:
+        if not stream_settings.AUTO_CREATE_TRANSCRIPTS:
+            return None
+
+        ongoing = Transcript.objects.filter(
+            name = '[TRANSCRIPTION ONGOING]', 
+            language = 'default'
+        ).first()
+        
+        if not ongoing:
+            return None
+        return ongoing.video
+
+
 download_queue = DownloadQueueManager()
 upload_queue = UploadQueueManager()
+audio_queue = AudioExtractionQueueManager()
+transcribe_queue = TranscriberManager()
 
 
 def go_next(queue: QueueManager, instance: VideoStream, scheduler: typing.Callable[[VideoStream], None]):

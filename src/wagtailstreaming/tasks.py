@@ -110,6 +110,98 @@ def convert_video(stream_id):
     task_utils.go_next(task_utils.upload_queue, video, task_utils.sched_conversion)
 
 
+@shared_task(name = 'wagtailstreaming_extract_audio')
+def extract_audio(stream_id):
+    from . import conversion_utils, task_utils
+
+    ongoing = task_utils.audio_queue.ongoing
+    if ongoing:
+        LOGGER.info(f'There is currently a video instance whose audio is getting transcribed! id: {ongoing.id}')
+        return
+    
+    from .models import get_stream_model
+
+    stream_class = get_stream_model()
+    video = stream_class.objects.filter(id = stream_id).first()
+    if not video:
+        LOGGER.warning(f'There is no Video instance with the id {stream_id}!')
+        task_utils.go_next(task_utils.audio_queue, video, task_utils.sched_audio)
+        return
+    
+    if video.audio_ready:
+        task_utils.go_next(task_utils.audio_queue, video, task_utils.sched_audio)
+        return
+    
+    if not video.raw.audio_file:
+        LOGGER.warning(f'Stream instance does not have a raw file yet, skipping...')
+        task_utils.sched_download(video)
+        return
+    
+    def clean_audio_extraction_process(success = False):
+        if video.remarks:
+            video.remarks = video.remarks.replace('[AUDIO EXTRACTION ONGOING]', 'AUDIO EXTRACTED' if success else 'AUDIO EXTRACTION FAILED')
+        video.audio_ready = success
+        video.save(update_fields = ['remarks', 'audio_ready'])
+
+    def start_audio_extraction_process():
+        video.add_remark('[AUDIO EXTRACTION ONGOING]')
+
+    start_audio_extraction_process()
+    success = conversion_utils.extract_audio(video.raw.path, video.raw.audio_file)
+    if not success:
+        LOGGER.error(f'Failed to extract audio file of stream instance {stream_id}! Skipping...')
+
+    clean_audio_extraction_process(success)
+    task_utils.go_next(task_utils.audio_queue, video, task_utils.sched_audio)
+
+
+@shared_task(name = 'wagtailstreaming_transcribe_video')
+def transcribe_video(stream_id):
+    from . import task_utils, transcription_utils
+
+    ongoing = task_utils.transcribe_queue.ongoing
+    if ongoing:
+        LOGGER.info(f'There is currently a video instance getting transcribed! id: {ongoing.id}')
+        return
+    
+    from .models import get_stream_model, Transcript, TranscriptCue
+
+    stream_class = get_stream_model()
+    video = stream_class.objects.filter(id = stream_id).first()
+    if not video:
+        LOGGER.warning(f'There is no Video instance with the id {stream_id}!')
+        task_utils.go_next(task_utils.transcribe_queue, video, task_utils.sched_transcribe)
+        return
+    
+    if not video.raw.audio_file:
+        LOGGER.warning(f'Stream instance does not have a raw file yet, skipping...')
+        task_utils.sched_audio(video)
+        return
+
+    transcript_process_kwargs = {
+        'video': video, 'language': 'default', 
+        'name': '[TRANSCRIPTION ONGOING]'
+    }
+
+    def clean_transcription_process():
+        Transcript.objects.filter(**transcript_process_kwargs).delete()
+        
+    def start_transcription_process():
+        Transcript.objects.get_or_create(**transcript_process_kwargs)
+
+    start_transcription_process()
+    default = Transcript.objects.filter(video = video, default = True).first()
+    if not default:
+        transcription_utils.update_vtt(video)
+
+    unsynced = TranscriptCue.objects.filter(transcript__video = video, synced = False).values_list('transcript__id', flat = True)
+    for un in unsynced:
+        transcription_utils.update_vtt(video, un)
+
+    clean_transcription_process()
+    task_utils.go_next(task_utils.transcribe_queue, video, task_utils.sched_transcribe)
+
+
 @shared_task(name = 'wagtailstreaming_download_video')
 def download_video(stream_id):
     from . import task_utils, download_utils
