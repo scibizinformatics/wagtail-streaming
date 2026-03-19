@@ -30,6 +30,7 @@ from .conversion_utils import (
 from .dataclasses import (
     VideoAttribute, 
     TranscriptInfo, 
+    StreamSubtitle, 
     Duration, 
     Progress, 
     DASH, 
@@ -50,6 +51,11 @@ from .utils import (
     get_txt_files,
     create_dir, 
     hash_this, 
+)
+from .parsers import (
+    DASHMasterManifest, 
+    HLSMasterManifest, 
+    StreamSubtitle, 
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -115,10 +121,10 @@ class VideoStream(
         help_text = _('marked if the raw video has been converted to MPEG-DASH format')
     )
 
-    transcript_ready = models.BooleanField(
+    audio_ready = models.BooleanField(
         default = False, 
-        verbose_name = _('has synced transcripts'), 
-        help_text = _('marked if the video has synced its transcripts to its .vtt file')
+        verbose_name = _('has an audio file'), 
+        help_text = _('marked if the audio of the video has been extracted')
     )
 
     uploaded_by = models.ForeignKey(
@@ -233,7 +239,7 @@ class VideoStream(
         return hash_this(self.id) if self.id else ''
 
     @property
-    def download_root(self) -> str: # fix this
+    def download_root(self) -> str:
         if any((
             self.file, 
             not self.file_url, 
@@ -393,6 +399,24 @@ class VideoStream(
         else:
             self.remarks = f'"{format_statement(statement)}"'
         self.save(update_fields = ['remarks'])
+    
+    def register_vtt(self, subtitle: StreamSubtitle) -> bool:
+        try: 
+            if self.hls_ready:
+                manifest = HLSMasterManifest(self.hls.path).parse()
+                manifest.add_subtitle(subtitle)
+                manifest.write()
+            
+            if self.dash_ready:
+                manifest = DASHMasterManifest(self.dash.path).parse()
+                manifest.add_subtitle(subtitle)
+                manifest.write()
+            
+            return self.hls_ready or self.dash_ready
+        
+        except ValueError as e:
+            LOGGER.error(f'Failed to add vtt {subtitle.uri} to manifest files of {self.title}, error: {e}')
+            return False
 
     def clean(self, *args, **kwargs):
         super().clean(*args, **kwargs)
@@ -430,19 +454,72 @@ def get_stream_model() -> typing.Type[VideoStream]:
 
 class Transcript(models.Model):
     video = models.ForeignKey(get_stream_model(), on_delete = models.CASCADE, related_name = 'transcripts')
-    language = models.CharField(max_length = 16, help_text = _('Language assigned to this transcription'))
+    name = models.CharField(max_length = 32, help_text = _('Language name assigned to this transcription'))
+    language = models.CharField(max_length = 16, help_text = _('Language code assigned to this transcription'))
+    slug = models.SlugField(max_length = 32, help_text = _('Filesystem-safe identifier'))
+    default = models.BooleanField(default = False)
+
+    @property
+    def file_name(self) -> str:
+        return f'{self.slug}.vtt'
+
+    @property
+    def audio(self) -> str:
+        return self.video.raw.audio_file
+
+    @property
+    def path(self) -> str:
+        return self.video.transcription.get_path(self.slug)
+    
+    @property
+    def url(self) -> str:
+        return self.video.transcription.get_url(self.slug)
+    
+    @property
+    def as_dataclass(self) -> StreamSubtitle:
+        return StreamSubtitle(
+            name = self.name, language = self.language, 
+            default = self.default, uri = self.url
+        )
+
+    def __str__(self):
+        return f'[{self.file_name}] {self.video.title}'
+    
+    class Meta:
+        verbose_name = _('transcript')
+        ordering = ['video', 'language', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields = ['video', 'language', 'name', 'slug'],
+                name = 'unique_transcript_per_video_language_name_slug'
+            ),
+            models.UniqueConstraint(
+                fields = ['video'],
+                condition = models.Q(default=True),
+                name = 'unique_default_transcript_per_video'
+            )
+        ]
+
+
+class TranscriptCue(models.Model):
+    transcript = models.ForeignKey(Transcript, on_delete = models.CASCADE, related_name = 'cues')
     start = models.DurationField(help_text = _('The start range of the text when it is heard in the video'))
     end = models.DurationField(help_text = _('The end range of the text when it is heard in the video'))
     text = models.TextField(help_text = _('The text for this transcription'))
-    
+    synced = models.BooleanField(default = False, help_text = _('Marked if transcript has not been synced to corresponding .vtt file yet'))
+
+    @property
+    def as_block(self) -> str:
+        return f'{self.start} --> {self.end}\n{self.text}\n'
+
     def __str__(self):
         return f'[{self.start} --> {self.end}] {self.text}'
 
     def clean(self):
         super().clean()
         if self.start > self.end:
-            raise ValidationError('Transcript range must not be reversed')
+            raise ValidationError('Transcript cue range must not be reversed')
     
     class Meta:
-        verbose_name = _('transcript')
-        ordering = ['video', 'language', 'start']
+        verbose_name = _('transcript cue')
+        ordering = ['transcript', 'start']
