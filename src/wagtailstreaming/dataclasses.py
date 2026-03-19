@@ -1,5 +1,6 @@
 from django.core.files import File
 
+from datetime import timedelta
 from pathlib import Path
 import mimetypes
 import logging
@@ -29,6 +30,9 @@ from .utils import (
 
 LOGGER = logging.getLogger(__name__)
 ATTR_RE = re.compile(r'([A-Z0-9-]+)=("[^"]*"|[^,]*)')
+TIMESTAMPS_RE = re.compile(
+    r'(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})'
+)
 
 @dataclass
 class TranscriptInfo:
@@ -47,41 +51,41 @@ class TranscriptInfo:
             return
         
         for f in os.listdir(self.root):
-            if not os.path.isfile(f):
+            f_path = os.path.join(self.root, f)
+            if not os.path.isfile(f_path):
                 continue
 
             if not f.lower().endswith('.vtt'):
                 continue
 
-            lang = os.path.splitext(f)[0].lower()
-            self._file_map[lang] = f
+            slug = os.path.splitext(f)[0].lower()
+            self._file_map[slug] = f
         
-        if len(self._file_map) == 1:
-            self._file_map['default'] = next(iter(self._file_map.values()))
+        if len(self._file_map) == 1 and 'default-en' not in self._file_map:
+            self._file_map['default-en'] = next(iter(self._file_map.values()))
 
     @property
     def files(self) -> List[str]:
         if not self.root:
             return []
-
         return list(self._file_map.values())
     
-    def _get_file(self, language: str = 'default') -> str:
+    def _get_file(self, slug: str = 'default-en') -> str:
         if not self._file_map:
             return ''
 
-        language = (language or 'default').lower()
-        return self._file_map.get(language, '')
+        slug = (slug or 'default-en').lower()
+        return self._file_map.get(slug, '')
     
-    def get_path(self, language: str = 'default') -> str:
-        file = self._get_file(language)
+    def get_path(self, slug: str = 'default-en') -> str:
+        file = self._get_file(slug)
         if not file:
             return ''
 
         return os.path.join(self.root, file)
 
-    def get_url(self, language: str = 'default') -> str:
-        path = self.get_path(language)
+    def get_url(self, slug: str = 'default-en') -> str:
+        path = self.get_path(slug)
         if not path:
             return ''
 
@@ -512,12 +516,19 @@ class StreamSubtitle:
     name: str = field(default = '')
     language: str = field(default = '')
     default: bool = field(default = False)
-    autoselect: bool = field(default = False)
+    autoselect: bool = field(default = True)
     uri: str = field(default = '') # file will always be vtt
     # group_id will always be "subs"
 
     @property
+    def is_valid(self) -> bool:
+        return self.language and self.uri
+
+    @property
     def hls_rep(self) -> str:
+        if self.language.lower() == 'default':
+            return ''
+
         return ','.join([
             f"{k.upper().replace('_', '-')}={self.data_as_str(k)}"
             for k, _ in self.__dataclass_fields__.items()
@@ -553,3 +564,49 @@ class StreamSubtitle:
                 LOGGER.warning(f'Could not parse attribute {key}={value}, error: {e}')
                 continue
         return self
+
+
+@dataclass
+class VTTSnippet:
+    start: timedelta = field(default_factory = timedelta)
+    end: timedelta = field(default_factory = timedelta)
+    text: str = field(default = '')
+
+    @property
+    def is_valid(self) -> bool:
+        return self.start <= self.end
+    
+    def init_from_snippet(self, snippet: str):
+        lines = [line.strip() for line in snippet.strip().splitlines() if line.strip()]
+        timestamp_index = None
+
+        for index, line in enumerate(lines):
+            if '-->' in line:
+                timestamp_index = index
+                break
+        
+        if timestamp_index is None:
+            raise ValueError("Invalid VTT timestamp line")
+
+        timestamp_line = lines[timestamp_index]
+        self.text = "\n".join(lines[timestamp_index + 1:]).strip()
+
+        match = TIMESTAMPS_RE.search(timestamp_line)
+        if not match:
+            raise ValueError("Invalid VTT timestamp line")
+
+        start_str, end_str = match.groups()
+        self.start = self._parse_timestamp(start_str.strip())
+        self.end = self._parse_timestamp(end_str.strip())
+        return self
+    
+    def _parse_timestamp(self, timestamp: str) -> timedelta:
+        hms, ms = timestamp.split('.')
+        h, m, s = map(int, hms.split(':'))
+
+        return timedelta(
+            hours = h,
+            minutes = m,
+            seconds = s,
+            milliseconds = int(ms),
+        )
