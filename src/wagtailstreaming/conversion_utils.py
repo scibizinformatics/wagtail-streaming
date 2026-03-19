@@ -1,6 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
 
-from pathlib import Path
 import subprocess
 import logging
 import typing
@@ -143,34 +142,6 @@ def extract_audio(source_path: str, output_path: str) -> bool:
     except Exception as e:
         LOGGER.error(f'Failed to extract audio from video {source_path}: {e}')
         return False
-
-
-def nanogpt_transcribe(source_path: str, language: str = None) -> str:
-    try:
-        from openai import OpenAI
-    except Exception:
-        return ''
-
-    path = Path(source_path)
-    if not path.exists():
-        raise FileNotFoundError(f'Source audio file with path {source_path} is not accessible!')
-    
-    client = OpenAI(
-        api_key = stream_settings.NANOGPT_API_KEY, 
-        base_url = stream_settings.NANOGPT_BASE_URL
-    )
-
-    with open(path, 'rb') as file:
-        kwargs = dict(
-            model = 'whisper-1', 
-            file = file, 
-            response_format = 'vtt', 
-        )
-        if language:
-            kwargs['language'] = language
-
-        transcript = client.audio.transcriptions.create(**kwargs)
-    return transcript
 
 
 def check_attributes(source_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
