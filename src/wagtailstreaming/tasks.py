@@ -45,6 +45,46 @@ def check_downloads():
     task_utils.sched_download(on_queue)
 
 
+@shared_task(name = 'wagtailstreaming_check_audios')
+def check_audios():
+    from . import task_utils
+
+    if not task_utils.celery_beat_installed():
+        LOGGER.warning('Skipping check_audios(): django_celery_beat is not installed')
+        return
+    
+    ongoing = task_utils.audio_queue.ongoing
+    if ongoing:
+        LOGGER.info(f'There is currently a stream instance getting processed! id: {ongoing.id}')
+        return
+    
+    on_queue = task_utils.audio_queue.front
+    if not on_queue:
+        LOGGER.info('All audios have been processed')
+        return
+    task_utils.sched_audio(on_queue)
+
+
+@shared_task(name = 'wagtailstreaming_check_transcripts')
+def check_transcripts():
+    from . import task_utils
+
+    if not task_utils.celery_beat_installed():
+        LOGGER.warning('Skipping check_transcripts(): django_celery_beat is not installed')
+        return
+    
+    ongoing = task_utils.transcribe_queue.ongoing
+    if ongoing:
+        LOGGER.info(f'There is currently a stream instance getting processed! id: {ongoing.id}')
+        return
+    
+    on_queue = task_utils.transcribe_queue.front
+    if not on_queue:
+        LOGGER.info('All transcriptions have been processed')
+        return
+    task_utils.sched_transcribe(on_queue)
+
+
 @shared_task(name = 'wagtailstreaming_convert_video')
 def convert_video(stream_id):
     from . import task_utils
