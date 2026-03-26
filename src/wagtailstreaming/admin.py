@@ -14,7 +14,7 @@ if stream_settings.VIDEO_STREAM_MODEL in ['wagtailstreaming.VideoStream', '']:
         raw_ready.boolean = True
         
         def transcript_ready(self, obj):
-            return obj.transcriptions.exists()
+            return obj.transcripts.exists()
         transcript_ready.boolean = True
 
     admin.site.register(VideoStream, VideoStreamAdmin)
@@ -31,6 +31,9 @@ admin.site.register(Transcript, TranscriptAdmin)
 
 class TranscriptCueAdmin(admin.ModelAdmin):
     list_display = ['transcript', 'text_rep', 'synced']
-    list_display = ['synced', 'transcript']
+    list_filter = ['synced', 'transcript']
+
+    def text_rep(self, obj):
+        return str(obj)
 
 admin.site.register(TranscriptCue, TranscriptCueAdmin)
