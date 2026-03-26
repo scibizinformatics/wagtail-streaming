@@ -24,6 +24,7 @@ DEFAULTS = {
     'AUDIO_ROOT': os.path.join(user_settings.BASE_DIR, 'audios'), 
 
     'TRANSCRIPT_URL': '/transcript/', 
+    'AUDIO_URL': '/audios/', 
     'DASH_URL': '/dash/', 
     'HLS_URL': '/hls/', 
 
