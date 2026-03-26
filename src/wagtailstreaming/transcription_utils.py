@@ -13,7 +13,20 @@ from .dataclasses import VTTSnippet, StreamSubtitle
 LOGGER = logging.getLogger(__name__)
 LANGUAGE_RE = re.compile(r'Language:\s*([a-zA-Z-]+)', re.IGNORECASE)
 
-def nanogpt_transcribe(source_path: str, language: str = None) -> str:
+
+def get_file_size(source_path: str) -> float:
+    """
+    Returns file size in MB
+    """
+    try:
+        size_bytes = os.path.getsize(source_path)
+        return size_bytes / (1024 * 1024)
+    except Exception as e:
+        LOGGER.error(f'Failed to get file size: {e}')
+        return 0.0
+
+
+def nanogpt_transcribe(source_path: str, language: str = None) -> str: # create a smart segmenter for this
     try:
         from openai import OpenAI
     except Exception as e:
@@ -23,13 +36,15 @@ def nanogpt_transcribe(source_path: str, language: str = None) -> str:
     path = Path(source_path)
     if not path.exists():
         raise FileNotFoundError(f'Source audio file with path {source_path} is not accessible!')
-    
-    client = OpenAI(
-        api_key = stream_settings.NANOGPT_API_KEY, 
-        base_url = stream_settings.NANOGPT_BASE_URL
-    )
+
+    file_size = get_file_size(source_path)
 
     try:
+        client = OpenAI(
+            api_key = stream_settings.NANOGPT_API_KEY, 
+            base_url = stream_settings.NANOGPT_BASE_URL
+        )
+
         with open(path, 'rb') as file:
             kwargs = {
                 'model': 'whisper-1', 
@@ -44,6 +59,8 @@ def nanogpt_transcribe(source_path: str, language: str = None) -> str:
     
     except Exception as e:
         LOGGER.error(f'Transcription request failed: {e}')
+        LOGGER.error(f'File: {path}')
+        LOGGER.error(f'SIZE: {file_size} MB')
         return ''
 
 
