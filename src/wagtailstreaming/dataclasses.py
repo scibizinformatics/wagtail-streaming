@@ -91,8 +91,19 @@ class TranscriptInfo:
 
         relative = os.path.relpath(path, stream_settings.TRANSCRIPT_ROOT)
         return f"{stream_settings.TRANSCRIPT_URL.rstrip('/')}/{relative.replace(os.sep, '/')}"
+    
+    def get_text(self, slug: str = 'default-en') -> str:
+        path = self.get_path(slug)
+        if not path:
+            return ''
+        
+        try:
+            with open(path, 'r', encoding = 'utf-8') as f:
+                return f.read()
+        except Exception:
+            return ''
 
-
+    
 @dataclass
 class Stream:
     # exposed
@@ -206,7 +217,7 @@ class RAW(Stream):
     def audio_file(self) -> str:
         if not self._file:
             return ''
-        return os.path.join(stream_settings.AUDIO_ROOT, f'{self.video_hash}.wav')
+        return os.path.join(stream_settings.AUDIO_ROOT, f'{self.video_hash}.mp3')
     
     @property
     def has_audio_file(self) -> bool:
@@ -214,6 +225,14 @@ class RAW(Stream):
         if not file:
             return False
         return os.path.exists(file) and os.path.isfile(file)
+
+    @property
+    def audio_url(self) -> str:
+        if not self.has_audio_file:
+            return ''
+        
+        relative = os.path.relpath(self.audio_file, stream_settings.AUDIO_ROOT)
+        return f"{stream_settings.AUDIO_URL.rstrip('/')}/{relative.replace(os.sep, '/')}"
 
 
 @dataclass
