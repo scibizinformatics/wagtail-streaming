@@ -120,13 +120,13 @@ def extract_audio(source_path: str, output_path: str) -> bool:
     """Extracts the audio part of a video"""
     if not ffmpeg_installed():
         return False
-    
+
     try:
         subprocess.run(
             [
-                'ffmpeg', '-i', source_path, 
-                '-vn', '-ac', '1', '-ar',
-                '16000', output_path
+                'ffmpeg', '-y', '-i', source_path, 
+                '-vn', '-ac', '1', '-ar', '16000', 
+                '-c:a', 'libmp3lame', '-b:a', '64k', output_path
             ], check = True
         )
 
