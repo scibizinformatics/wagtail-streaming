@@ -307,6 +307,18 @@ class VideoStream(
         path = os.path.join(stream_settings.TRANSCRIPT_ROOT, self.hashed_id)
         return TranscriptInfo(root = create_dir(path))
 
+    def get_transcript_text(self, slug: str = None) -> str:
+        if slug:
+            instance: Transcript = self.transcripts.filter(slug = slug).first()
+        else:
+            instance: Transcript = self.transcripts.filter(default = True).first()
+        
+        if not instance:
+            return ''
+        
+        cues: models.QuerySet[TranscriptCue] = instance.cues.filter(synced = True).order_by('start')
+        return '\n'.join(cue.as_doc_line for cue in cues)
+
     @property
     def duration(self) -> Duration:
         if not self.file:
@@ -511,6 +523,18 @@ class TranscriptCue(models.Model):
     @property
     def as_block(self) -> str:
         return f'{self.start} --> {self.end}\n{self.text}\n'
+
+    @property
+    def start_sec(self) -> int:
+        return int(self.start.total_seconds())
+    
+    @property
+    def end_sec(self) -> int:
+        return int(self.end.total_seconds())
+
+    @property
+    def as_doc_line(self) -> str:
+        return f'[t={self.start_sec}] {self.text}'
 
     def __str__(self):
         return f'[{self.start} --> {self.end}] {self.text}'
